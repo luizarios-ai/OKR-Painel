@@ -1,0 +1,1 @@
+ALTER TABLE public.key_results ADD COLUMN expected_progress_mode text NOT NULL DEFAULT 'linear';

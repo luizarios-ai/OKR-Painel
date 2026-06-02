@@ -1,0 +1,1 @@
+ALTER TABLE public.checkins ADD COLUMN reference_month TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM');
