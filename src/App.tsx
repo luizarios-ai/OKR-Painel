@@ -3,6 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Diretrizes from "@/pages/Diretrizes";
+import Diretrizes from "@/pages/Diretrizes";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppProvider, useApp } from "@/contexts/AppContext";
@@ -11,7 +13,6 @@ import AppLayout from "@/components/layout/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import OKRs from "@/pages/OKRs";
 import KRDetail from "@/pages/KRDetail";
-import CompanyView from "@/pages/CompanyView";
 import Admin from "@/pages/Admin";
 import CreateOKR from "@/pages/CreateOKR";
 import Login from "@/pages/Login";
@@ -29,7 +30,7 @@ function ViewerGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const role = currentUser?.role;
     if (role === "viewer") {
-      const allowed = ["/", "/empresa"];
+      const allowed = ["/"];
       if (!allowed.includes(location.pathname)) {
         navigate("/", { replace: true });
       }
@@ -63,7 +64,8 @@ function AuthGate() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/okrs" element={<OKRs />} />
             <Route path="/kr/:id" element={<KRDetail />} />
-            <Route path="/empresa" element={<CompanyView />} />
+            <Route path="/diretrizes" element={<Diretrizes />} />
+            <Route path="/diretrizes" element={<Diretrizes />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/criar-okr" element={<CreateOKR />} />
             <Route path="*" element={<NotFound />} />

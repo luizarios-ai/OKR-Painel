@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useObjectives, useKeyResults, useMilestones, useAreas, useAllCheckins } from "@/hooks/useOKRData";
 import { progressKR, progressObjective, getKRStatus, expectedProgress, statusOrder, formatPercent, type OKRStatus } from "@/lib/okr-utils";
 import StatusBadge from "@/components/okr/StatusBadge";
@@ -19,7 +20,6 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList,
 } from "recharts";
 import DashboardFilters, { loadFilters, type FilterState } from "@/components/dashboard/DashboardFilters";
-import CompanyEvolutionCharts from "@/components/dashboard/CompanyEvolutionCharts";
 
 const ROW_HEIGHT = 49;
 const MAX_VISIBLE = 7;
@@ -32,7 +32,7 @@ const STATUS_COLORS: Record<OKRStatus, string> = {
 };
 
 export default function Dashboard() {
-  const { currentCycle } = useApp();
+  const { currentCycle, setCycle, cycles } = useApp();
   const { data: objectives } = useObjectives(currentCycle?.id);
   const { data: keyResults } = useKeyResults(currentCycle?.id);
   const { data: areas } = useAreas();
@@ -260,7 +260,11 @@ export default function Dashboard() {
             Ciclo {currentCycle?.name} · Progresso esperado: {formatPercent(expected)}
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <Select value={currentCycle?.id || ""} onValueChange={(v) => setCycle(cycles.find((c) => c.id === v) || null)}>
+            <SelectTrigger className="w-36 text-sm"><SelectValue placeholder="Ciclo" /></SelectTrigger>
+            <SelectContent>{cycles.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+          </Select>
           <DashboardFilters areas={areas || []} filters={filters} onChange={setFilters} />
           <ExportButtons
             onExportExcel={() => {
@@ -307,159 +311,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Section 1: Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-primary border-primary">
-          <CardContent className="pt-6 text-center">
-            <Activity className="h-6 w-6 mx-auto mb-2 text-primary-foreground" />
-            <div className="text-3xl font-bold text-primary-foreground">{formatPercent(okrStats.avgProgress)}</div>
-            <div className="text-xs text-primary-foreground/90 font-medium mt-1 flex items-center justify-center gap-1">
-              Progresso Geral OKR {filteredAreaIds ? "(Áreas selecionadas)" : "(Empresa)"}
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-primary-foreground/70 cursor-help" /></TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[240px]"><p className="text-xs">Média do progresso de todos os OKRs do ciclo atual</p></TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <Target className="h-5 w-5 mx-auto mb-2 text-primary" />
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-              Total de KRs
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[240px]"><p className="text-xs">Quantidade total de Key Results cadastrados no ciclo</p></TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <Target className="h-5 w-5 mx-auto mb-2 text-primary" />
-            <div className="text-2xl font-bold">{okrStats.total}</div>
-            <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-              Total de OKRs
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-[240px]"><p className="text-xs">Quantidade total de Objetivos cadastrados no ciclo</p></TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Section 2: KR Status */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Status dos KRs</h2>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-[280px]">
-                <ul className="text-xs space-y-1">
-                  <li><span className="font-semibold text-status-off-track">Crítico:</span> Progresso abaixo de 40% do esperado</li>
-                  <li><span className="font-semibold text-status-at-risk">Atenção:</span> Progresso entre 40% e 70% do esperado</li>
-                  <li><span className="font-semibold text-status-on-track">No planejado:</span> Progresso acima de 70% do esperado</li>
-                  <li><span className="font-semibold text-status-completed">Completo:</span> Meta atingida ou superada</li>
-                </ul>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-5 text-center">
-              <TrendingDown className="h-5 w-5 mx-auto mb-1.5 text-status-off-track" />
-              <div className="text-2xl font-bold">{stats.offTrack}</div>
-              <div className="text-xs text-muted-foreground">KRs Críticos</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5 text-center">
-              <AlertTriangle className="h-5 w-5 mx-auto mb-1.5 text-status-at-risk" />
-              <div className="text-2xl font-bold">{stats.atRisk}</div>
-              <div className="text-xs text-muted-foreground">KRs em Atenção</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5 text-center">
-              <Activity className="h-5 w-5 mx-auto mb-1.5 text-status-on-track" />
-              <div className="text-2xl font-bold">{stats.onTrack}</div>
-              <div className="text-xs text-muted-foreground">KRs No Planejado</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5 text-center">
-              <CheckCircle2 className="h-5 w-5 mx-auto mb-1.5 text-status-completed" />
-              <div className="text-2xl font-bold">{stats.completed}</div>
-              <div className="text-xs text-muted-foreground">KRs Completos</div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Section 3: OKR Status */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Status dos OKRs</h2>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-[280px]">
-                <ul className="text-xs space-y-1">
-                  <li><span className="font-semibold text-status-off-track">Crítico:</span> Progresso abaixo de 40% do esperado</li>
-                  <li><span className="font-semibold text-status-at-risk">Atenção:</span> Progresso entre 40% e 70% do esperado</li>
-                  <li><span className="font-semibold text-status-on-track">No planejado:</span> Progresso acima de 70% do esperado</li>
-                  <li><span className="font-semibold text-status-completed">Completo:</span> Meta atingida ou superada</li>
-                </ul>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-5 text-center">
-              <TrendingDown className="h-5 w-5 mx-auto mb-1.5 text-status-off-track" />
-              <div className="text-2xl font-bold">{okrStats.offTrack}</div>
-              <div className="text-xs text-muted-foreground">OKRs Críticos</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5 text-center">
-              <AlertTriangle className="h-5 w-5 mx-auto mb-1.5 text-status-at-risk" />
-              <div className="text-2xl font-bold">{okrStats.atRisk}</div>
-              <div className="text-xs text-muted-foreground">OKRs em Atenção</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5 text-center">
-              <Activity className="h-5 w-5 mx-auto mb-1.5 text-status-on-track" />
-              <div className="text-2xl font-bold">{okrStats.onTrack}</div>
-              <div className="text-xs text-muted-foreground">OKRs No Planejado</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5 text-center">
-              <CheckCircle2 className="h-5 w-5 mx-auto mb-1.5 text-status-completed" />
-              <div className="text-2xl font-bold">{okrStats.completed}</div>
-              <div className="text-xs text-muted-foreground">OKRs Completos</div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
       {/* Column Chart - Performance por Área */}
       <Card>
         <CardHeader>
@@ -474,10 +325,10 @@ export default function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={colChartConfig} className="aspect-[2/1] max-h-[300px]">
-            <BarChart data={areaProgressData} layout="horizontal">
+          <ChartContainer config={colChartConfig} style={{ height: "350px", width: "100%" }}>
+            <BarChart data={areaProgressData} layout="horizontal" margin={{ top: 20, right: 16, left: 8, bottom: 70 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="name" className="text-xs" />
+              <XAxis dataKey="name" className="text-xs" angle={-35} textAnchor="end" interval={0} tick={{ fontSize: 11 }} />
               <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} className="text-xs" />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Bar dataKey="progress" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
@@ -485,195 +336,6 @@ export default function Dashboard() {
               </Bar>
             </BarChart>
           </ChartContainer>
-        </CardContent>
-      </Card>
-
-      {/* Stacked Bar Chart - Status dos KRs por Área */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            Status dos KRs por Área
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild><Info className="h-4 w-4 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[280px]"><p className="text-xs">Quantidade de KRs em cada status (Crítico, Atenção, No planejado, Completo) por área</p></TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={barChartConfig} className="aspect-[2/1] max-h-[300px]">
-            <BarChart data={statusByAreaData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis type="number" className="text-xs" />
-              <YAxis dataKey="name" type="category" width={100} className="text-xs" />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="off-track" stackId="a" fill={STATUS_COLORS["off-track"]}>
-                <LabelList dataKey="off-track" position="center" formatter={(v: number) => v > 0 ? v : ""} className="fill-white text-[10px]" />
-              </Bar>
-              <Bar dataKey="at-risk" stackId="a" fill={STATUS_COLORS["at-risk"]}>
-                <LabelList dataKey="at-risk" position="center" formatter={(v: number) => v > 0 ? v : ""} className="fill-white text-[10px]" />
-              </Bar>
-              <Bar dataKey="on-track" stackId="a" fill={STATUS_COLORS["on-track"]}>
-                <LabelList dataKey="on-track" position="center" formatter={(v: number) => v > 0 ? v : ""} className="fill-white text-[10px]" />
-              </Bar>
-              <Bar dataKey="completed" stackId="a" fill={STATUS_COLORS["completed"]} radius={[0, 4, 4, 0]}>
-                <LabelList dataKey="completed" position="center" formatter={(v: number) => v > 0 ? v : ""} className="fill-white text-[10px]" />
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
-      {/* Company Evolution Charts */}
-      {currentCycle && filteredKRs.length > 0 && filteredObjectives.length > 0 && (
-        <CompanyEvolutionCharts
-          cycle={currentCycle}
-          objectives={filteredObjectives}
-          keyResults={filteredKRs}
-          checkins={allCheckins || []}
-          milestonesMap={milestonesMap}
-        />
-      )}
-
-      {/* KRs Críticos e em Atenção - TABLE */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            KRs Críticos e em Atenção
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild><Info className="h-4 w-4 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[280px]"><p className="text-xs">Lista dos KRs com progresso abaixo de 70% do esperado, que precisam de atenção</p></TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {topOffTrackKRs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum KR Crítico ou em Atenção 🎉</p>
-          ) : (
-            <div className="overflow-auto border rounded-md" style={{ maxHeight: `${TABLE_MAX_H}px` }}>
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-background">
-                  <TableRow>
-                    <TableHead>KR</TableHead>
-                    <TableHead>Objective</TableHead>
-                    <TableHead>Área</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Progresso</TableHead>
-                    <TableHead>Responsável</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topOffTrackKRs.map(({ kr, status, progress, objective }) => (
-                    <TableRow key={kr.id}>
-                      <TableCell className="font-medium max-w-[200px]">
-                        <Link to={`/kr/${kr.id}`} className="hover:text-primary transition-colors line-clamp-1">
-                          {kr.title}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-sm max-w-[180px] truncate">{objective?.title || "—"}</TableCell>
-                      <TableCell className="text-sm">{getAreaName((kr as any).area_id)}</TableCell>
-                      <TableCell><StatusBadge status={status} /></TableCell>
-                      <TableCell className="text-right font-semibold text-sm">{formatPercent(progress)}</TableCell>
-                      <TableCell className="text-sm">{(kr as any).app_users?.name || "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* OKRs Críticos e em Atenção - TABLE */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            OKRs Críticos e em Atenção
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild><Info className="h-4 w-4 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[280px]"><p className="text-xs">Lista dos Objetivos com progresso abaixo de 70% do esperado, que precisam de atenção</p></TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {topOffTrackOKRs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum OKR Crítico ou em Atenção 🎉</p>
-          ) : (
-            <div className="overflow-auto border rounded-md" style={{ maxHeight: `${TABLE_MAX_H}px` }}>
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-background">
-                  <TableRow>
-                    <TableHead>Objective</TableHead>
-                    <TableHead>Área</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Progresso</TableHead>
-                    <TableHead>Owner</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topOffTrackOKRs.map(({ obj, status, progress }) => (
-                    <TableRow key={obj.id}>
-                      <TableCell className="font-medium max-w-[250px] truncate">{obj.title}</TableCell>
-                      <TableCell className="text-sm">{getAreaName(obj.area_id)}</TableCell>
-                      <TableCell><StatusBadge status={status} /></TableCell>
-                      <TableCell className="text-right font-semibold text-sm">{formatPercent(progress)}</TableCell>
-                      <TableCell className="text-sm">{obj.app_users?.name || "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* OKRs No Planejado e Completos - TABLE */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            OKRs No Planejado e Completos
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild><Info className="h-4 w-4 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[280px]"><p className="text-xs">Lista dos Objetivos com progresso acima de 70% do esperado ou já concluídos</p></TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {onTrackAndCompletedOKRs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum OKR No Planejado ou Completo</p>
-          ) : (
-            <div className="overflow-auto border rounded-md" style={{ maxHeight: `${TABLE_MAX_H}px` }}>
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-background">
-                  <TableRow>
-                    <TableHead>Objective</TableHead>
-                    <TableHead>Área</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Progresso</TableHead>
-                    <TableHead>Owner</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {onTrackAndCompletedOKRs.map(({ obj, status, progress }) => (
-                    <TableRow key={obj.id}>
-                      <TableCell className="font-medium max-w-[250px] truncate">{obj.title}</TableCell>
-                      <TableCell className="text-sm">{getAreaName(obj.area_id)}</TableCell>
-                      <TableCell><StatusBadge status={status} /></TableCell>
-                      <TableCell className="text-right font-semibold text-sm">{formatPercent(progress)}</TableCell>
-                      <TableCell className="text-sm">{obj.app_users?.name || "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -692,8 +354,24 @@ export default function Dashboard() {
 }
 
 /* ─── Check-in Fill Rate Table Component ─── */
-const ALL_MONTHS = ["01", "02", "03", "04", "05", "06"] as const;
-const ALL_MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"];
+const ALL_MONTH_LABELS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+function getCycleMonths(cycle: any): { months: string[]; labels: string[] } {
+  if (!cycle?.start_date || !cycle?.end_date) {
+    return { months: ["01","02","03","04","05","06"], labels: ["Jan","Fev","Mar","Abr","Mai","Jun"] };
+  }
+  const start = new Date(cycle.start_date + "T00:00:00");
+  const end = new Date(cycle.end_date + "T00:00:00");
+  const months: string[] = [];
+  const labels: string[] = [];
+  const d = new Date(start.getFullYear(), start.getMonth(), 1);
+  while (d <= end) {
+    months.push(String(d.getMonth() + 1).padStart(2, "0"));
+    labels.push(ALL_MONTH_LABELS_PT[d.getMonth()]);
+    d.setMonth(d.getMonth() + 1);
+  }
+  return { months, labels };
+}
 
 type FillStatus = "ok" | "attention" | "critical" | "no-data";
 
@@ -732,14 +410,14 @@ function CheckinFillRateTable({
     if (!areas.length || !keyResults.length) return [];
 
     // Parse date string directly to avoid timezone issues (e.g. "2026-01-01" → 2026)
-    const cycleYear = currentCycle?.start_date ? parseInt(currentCycle.start_date.slice(0, 4), 10) : new Date().getFullYear();
-
-    // Evaluate months from Jan up to the month BEFORE current (inclusive)
-    // e.g. if today is April → evaluate Jan, Feb, Mar
+    const { months: cycleMonths, labels: cycleLabels } = getCycleMonths(currentCycle);
     const now = new Date();
-    const lastEvalMonth = now.getFullYear() === cycleYear ? now.getMonth() : 6; // getMonth() is 0-based, so Apr=3 → evaluate up to month 3 (Mar)
-    const months = ALL_MONTHS.filter((mm) => parseInt(mm) <= lastEvalMonth);
-    const monthLabels = ALL_MONTH_LABELS.filter((_, i) => parseInt(ALL_MONTHS[i]) <= lastEvalMonth);
+    const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const cycleYear = currentCycle?.start_date ? parseInt(currentCycle.start_date.slice(0, 4), 10) : now.getFullYear();
+    // Show all cycle months; mark future ones separately
+    const months = cycleMonths;
+    const monthLabels = cycleLabels;
+    const isPastMonth = (mm: string) => `${cycleYear}-${mm}` <= nowKey;
 
     // Build milestone map: kr_id -> milestones[]
     const msMap: Record<string, any[]> = {};
@@ -802,17 +480,13 @@ function CheckinFillRateTable({
       }
 
       const monthPcts = months.map((mm) => {
-        const totalOKRs = areaOKRs.length;
-        let filledOKRs = 0;
-
-        areaOKRs.forEach((obj: any) => {
-          const objKRs = krsByObj[obj.id] || [];
-          if (objKRs.length === 0) return; // OKR without KRs doesn't count as filled
-          const allKRsFilled = objKRs.every((kr: any) => isKRFilled(kr, mm));
-          if (allKRsFilled) filledOKRs++;
-        });
-
-        return totalOKRs > 0 ? filledOKRs / totalOKRs : null;
+        // Future months: skip calculation, show as no-data
+        if (!isPastMonth(mm)) return null;
+        // Calculate % of KRs (not objectives) that have a checkin for this month
+        const allKRs = areaOKRs.flatMap((obj: any) => krsByObj[obj.id] || []);
+        if (allKRs.length === 0) return null;
+        const filledKRs = allKRs.filter((kr: any) => isKRFilled(kr, mm)).length;
+        return filledKRs / allKRs.length;
       });
 
       const validPcts = monthPcts.filter((p): p is number => p !== null);
@@ -820,21 +494,14 @@ function CheckinFillRateTable({
 
       let status: FillStatus = "no-data";
       if (avg !== null) {
-        // Green only if ALL months are 100%
-        if (avg >= 1 && validPcts.every((p) => p >= 1)) {
+        // Status based purely on average fill rate
+        if (avg >= 0.8) {
           status = "ok";
         } else if (avg >= 0.5) {
           status = "attention";
         } else {
           status = "critical";
         }
-
-        // Escalation: any month < 50% → critical
-        const hasBelow50 = validPcts.some((p) => p < 0.5);
-        const hasBelow70 = validPcts.some((p) => p < 0.7);
-
-        if (hasBelow50) status = "critical";
-        else if (hasBelow70 && status === "ok") status = "attention";
       }
 
       return { areaName: area.name, months: monthPcts, monthLabels, avg, status };
@@ -915,3 +582,6 @@ function CheckinFillRateTable({
     </Card>
   );
 }
+
+
+

@@ -209,7 +209,7 @@ export function exportPDF(data: ExportData) {
 
       autoTable(doc, {
         startY: y,
-        head: [["Key Result", "Progresso", "Status", "Owner"]],
+        head: [["Key Result", "Progresso", "Status", "Capitão"]],
         body: krTableData,
         margin: { left: 16, right: 16 },
         styles: { fontSize: 8, cellPadding: 2 },

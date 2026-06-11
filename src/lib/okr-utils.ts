@@ -44,46 +44,57 @@ export function expectedProgressKR(
  * For milestone-based KRs, uses weighted milestone progress.
  */
 export function progressKR(kr: KeyResult, milestones?: Milestone[], checkins?: CheckinRecord[]): number {
-  if (kr.has_milestones && milestones && milestones.length > 0) {
-    const sumResults = milestones.reduce((sum, m) => sum + (m.current_value ?? 0), 0);
-    if (kr.grade1_value === 0) return 0;
-    return clamp(sumResults / kr.grade1_value);
+  const g0 = kr.grade0_value ?? 0;
+  const g1 = kr.grade1_value ?? 1;
+  const range = g1 - g0;
+
+  // Helper: score using grade0→grade1 interval
+  function scoreInRange(value: number, direction: string): number {
+    if (range === 0) return 0;
+    if (direction === "decrease") {
+      // For decrease: score = (g0 - value) / (g0 - g1) = (g0 - value) / range_decrease
+      const rangeDec = g0 - g1;
+      if (rangeDec === 0) return 0;
+      return clamp((g0 - value) / rangeDec);
+    }
+    // increase: score = (value - g0) / (g1 - g0)
+    return clamp((value - g0) / range);
   }
 
-  // New formula: progress = accumulated / grade1 (Grade 0 is informational only)
+  if (kr.has_milestones && milestones && milestones.length > 0) {
+    const sumResults = milestones.reduce((sum, m) => sum + (m.current_value ?? 0), 0);
+    return scoreInRange(sumResults, kr.direction ?? "increase");
+  }
+
   if (checkins && checkins.length > 0) {
     const accumulated = checkins.reduce((sum, c) => sum + c.value, 0);
-    if (kr.grade1_value === 0) return 0;
 
-    // Average measurement type: progress = average of checkin values / grade1
     if (kr.measurement_type === "average") {
       const avg = accumulated / checkins.length;
-      if (kr.direction === "increase") {
-        return clamp(avg / kr.grade1_value);
-      }
-      return clamp(1 - avg / kr.grade1_value);
+      return scoreInRange(avg, kr.direction ?? "increase");
+    }
+
+    if (kr.measurement_type === "maximum") {
+      const maxVal = Math.max(...checkins.map(c => c.value));
+      return scoreInRange(maxVal, kr.direction ?? "increase");
     }
 
     // Accumulated (default)
-    if (kr.direction === "increase") {
-      return clamp(accumulated / kr.grade1_value);
-    }
-    // decrease: progress increases as value decreases from grade1 toward 0
-    return clamp(1 - accumulated / kr.grade1_value);
+    return scoreInRange(accumulated, kr.direction ?? "increase");
   }
 
-  // Fallback to current_value if no checkins provided
+  // Fallback to current_value
   if (kr.current_value == null) return 0;
-  if (kr.grade1_value === 0) return 0;
-  if (kr.direction === "increase") {
-    return clamp(kr.current_value / kr.grade1_value);
-  }
-  return clamp(1 - kr.current_value / kr.grade1_value);
+  return scoreInRange(kr.current_value, kr.direction ?? "increase");
 }
 
 export function progressMilestone(m: Milestone): number {
-  if (m.current_value == null || m.target_value === 0) return 0;
-  return clamp(m.current_value / m.target_value);
+  if (m.current_value == null) return 0;
+  const g0 = (m as any).grade0_value ?? 0;
+  const g1 = m.target_value ?? 1;
+  const range = g1 - g0;
+  if (range === 0) return 0;
+  return clamp((m.current_value - g0) / range);
 }
 
 export function progressObjective(
@@ -191,7 +202,7 @@ export function formatValue(value: number | null, unit: string): string {
   if (value == null) return "—";
   if (unit === "percent") return `${value.toFixed(1)}%`;
   if (unit === "currency") return `R$ ${value.toLocaleString("pt-BR")}`;
-  if (unit === "boolean") return value >= 1 ? "Sim" : "Não";
+  if (unit === "boolean") return value.toString();
   return value.toLocaleString("pt-BR");
 }
 

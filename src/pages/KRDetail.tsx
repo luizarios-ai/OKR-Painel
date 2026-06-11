@@ -13,6 +13,8 @@ import EditKRDialog from "@/components/okr/EditKRDialog";
 import EditMilestoneDialog from "@/components/okr/EditMilestoneDialog";
 import DeleteConfirmDialog from "@/components/okr/DeleteConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ClipboardCheck, User, Building2, Calendar, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
@@ -28,6 +30,7 @@ export default function KRDetail() {
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [editKROpen, setEditKROpen] = useState(false);
   const [editMilestone, setEditMilestone] = useState<any>(null);
+  const [newMilestoneOpen, setNewMilestoneOpen] = useState(false);
   const [editCheckin, setEditCheckin] = useState<any>(null);
   const [deleteKR, setDeleteKR] = useState(false);
   const [deleteMilestone, setDeleteMilestone] = useState<any>(null);
@@ -70,11 +73,14 @@ export default function KRDetail() {
   const isMilestoneDates = (kr as any).expected_progress_mode === "milestone_dates";
 
   const isAverage = (kr as any).measurement_type === "average";
+  const isMaximum = (kr as any).measurement_type === "maximum";
   const accumulatedValue = checkins && checkins.length > 0
     ? checkins.reduce((sum: number, c: any) => sum + c.value, 0)
     : kr.current_value;
   const displayValue = isAverage && checkins && checkins.length > 0
     ? accumulatedValue! / checkins.length
+    : isMaximum && checkins && checkins.length > 0
+    ? Math.max(...checkins.map((c: any) => c.value))
     : accumulatedValue;
 
   async function handleDeleteKR() {
@@ -121,7 +127,7 @@ export default function KRDetail() {
       queryClient.invalidateQueries({ queryKey: ["milestones-detail"] });
       queryClient.invalidateQueries({ queryKey: ["kr-detail"] });
       queryClient.invalidateQueries({ queryKey: ["all-checkins"] });
-      toast({ title: "Check-in excluído!" });
+      toast({ title: "Atualizar OKR excluído!" });
       setDeleteCheckin(null);
     } catch (err: any) {
       toast({ title: "Erro ao excluir", description: err?.message, variant: "destructive" });
@@ -170,7 +176,7 @@ export default function KRDetail() {
               )}
               {canCheckin && (
                 <Button onClick={() => setCheckinOpen(true)}>
-                  <ClipboardCheck className="h-4 w-4 mr-2" /> Check-in
+                  <ClipboardCheck className="h-4 w-4 mr-2" /> Atualizar OKR
                 </Button>
               )}
             </div>
@@ -178,7 +184,7 @@ export default function KRDetail() {
           <div className="flex items-center gap-4 mb-2">
             <span className="text-3xl font-bold">{formatPercent(progress)}</span>
             <span className="text-sm text-muted-foreground">
-              {isAverage ? "Média" : "Acumulado"}: {formatValue(displayValue, kr.unit)} / Meta: {formatValue(kr.grade1_value, kr.unit)}
+              {isAverage ? "Média" : isMaximum ? "Máximo" : "Acumulado"}: {formatValue(displayValue, kr.unit)} / Meta: {formatValue(kr.grade1_value, kr.unit)}
             </span>
           </div>
           <ProgressBar progress={progress} status={status} expected={expected} />
@@ -186,11 +192,11 @@ export default function KRDetail() {
       </Card>
 
       {/* Milestones */}
-      {milestones && milestones.length > 0 && (
+      {(canEdit || (milestones && milestones.length > 0)) && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Milestones</CardTitle></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">Milestones</CardTitle>{canEdit && <Button size="sm" variant="outline" onClick={() => setNewMilestoneOpen(true)}><Plus className="h-3.5 w-3.5 mr-1" />Novo Milestone</Button>}</CardHeader>
           <CardContent className="space-y-3">
-            {milestones.map((m) => {
+            {(milestones || []).map((m) => {
               const mp = progressMilestone(m);
               const ms = getMilestoneStatus(m, currentCycle);
               return (
@@ -212,7 +218,7 @@ export default function KRDetail() {
                     </div>
                     <div className="text-right text-xs text-muted-foreground">
                       <span className="font-semibold text-foreground">{formatPercent(mp)}</span>
-                      <span className="ml-2">Atual: {formatValue(m.current_value ?? 0, kr.unit)} / Meta: {formatValue(m.target_value, kr.unit)}</span>
+                      <span className="ml-2">Atual: {formatValue(m.current_value ?? 0, (m as any).unit || kr.unit)} / Meta: {formatValue(m.target_value, (m as any).unit || kr.unit)}</span>
                     </div>
                   </div>
                   <ProgressBar progress={mp} status={ms} />
@@ -232,9 +238,9 @@ export default function KRDetail() {
 
       {/* Checkin History */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Histórico de Check-ins</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Histórico de Atualizar OKRs</CardTitle></CardHeader>
         <CardContent>
-          {(!checkins || checkins.length === 0) && <p className="text-sm text-muted-foreground">Nenhum check-in realizado</p>}
+          {(!checkins || checkins.length === 0) && <p className="text-sm text-muted-foreground">Nenhum atualizar OKR realizado</p>}
           <div className="space-y-3">
             {(checkins || []).map((c: any) => {
               const monthLabel = c.reference_month
@@ -268,10 +274,10 @@ export default function KRDetail() {
                   </div>
                   {canEdit && (
                     <div className="flex items-center gap-1 shrink-0">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditCheckin(c)} title="Editar check-in">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditCheckin(c)} title="Editar atualizar OKR">
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteCheckin(c)} title="Excluir check-in">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteCheckin(c)} title="Excluir atualizar OKR">
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -286,10 +292,12 @@ export default function KRDetail() {
       <CheckinDialog open={checkinOpen} onOpenChange={setCheckinOpen} kr={kr} milestones={milestones || undefined} />
       {editKROpen && <EditKRDialog open={editKROpen} onOpenChange={setEditKROpen} kr={kr} />}
       {editMilestone && <EditMilestoneDialog open={!!editMilestone} onOpenChange={(v) => !v && setEditMilestone(null)} milestone={editMilestone} />}
+      <EditMilestoneDialog open={newMilestoneOpen} onOpenChange={(v) => !v && setNewMilestoneOpen(false)} milestone={null} krId={id!} />
+      <EditMilestoneDialog open={newMilestoneOpen} onOpenChange={(v) => !v && setNewMilestoneOpen(false)} milestone={null} krId={id!} />
       {editCheckin && <EditCheckinDialog open={!!editCheckin} onOpenChange={(v) => { if (!v) setEditCheckin(null); }} checkin={editCheckin} />}
       <DeleteConfirmDialog open={deleteKR} onOpenChange={setDeleteKR} title="Excluir Key Result" description="Tem certeza que deseja excluir este Key Result? Você será redirecionado para a lista de OKRs." onConfirm={handleDeleteKR} loading={deleting} />
       <DeleteConfirmDialog open={!!deleteMilestone} onOpenChange={(v) => !v && setDeleteMilestone(null)} title="Excluir Milestone" description="Tem certeza que deseja excluir este milestone?" onConfirm={handleDeleteMilestone} loading={deleting} />
-      <DeleteConfirmDialog open={!!deleteCheckin} onOpenChange={(v) => !v && setDeleteCheckin(null)} title="Excluir Check-in" description="Tem certeza que deseja excluir este check-in? O valor será recalculado automaticamente." onConfirm={handleDeleteCheckin} loading={deleting} />
+      <DeleteConfirmDialog open={!!deleteCheckin} onOpenChange={(v) => !v && setDeleteCheckin(null)} title="Excluir Atualizar OKR" description="Tem certeza que deseja excluir este atualizar OKR? O valor será recalculado automaticamente." onConfirm={handleDeleteCheckin} loading={deleting} />
     </div>
   );
 }

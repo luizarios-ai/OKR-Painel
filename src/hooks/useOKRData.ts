@@ -75,8 +75,10 @@ export function useCheckins(krId: string) {
 
 export function useAllCheckins(cycleId: string | undefined, krIds: string[]) {
   return useQuery({
-    queryKey: ["all-checkins", cycleId, krIds],
+    queryKey: ["all-checkins", cycleId],
     enabled: !!cycleId && krIds.length > 0,
+    gcTime: 0,
+    staleTime: 0,
     queryFn: async () => {
       const { data } = await supabase
         .from("checkins")

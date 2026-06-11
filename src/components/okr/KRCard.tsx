@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { ClipboardCheck, ChevronRight, User, Calendar, Pencil, Trash2 } from "lucide-react";
+import { ClipboardCheck, ChevronRight, User, Calendar, Pencil, Trash2, MessageSquare } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "./StatusBadge";
 import ProgressBar from "./ProgressBar";
@@ -20,6 +21,9 @@ interface Props {
   milestones?: Tables<"milestones">[];
   checkins?: any[];
 }
+
+
+
 
 export default function KRCard({ kr, milestones, checkins }: Props) {
   const { currentUser, currentCycle, currentUserAreaIds } = useApp();
@@ -53,11 +57,14 @@ export default function KRCard({ kr, milestones, checkins }: Props) {
   const canEdit = isOwner || isAdminWithArea;
 
   const isAverage = (kr as any).measurement_type === "average";
+  const isMaximum = (kr as any).measurement_type === "maximum";
   const accumulatedValue = checkins && checkins.length > 0
     ? checkins.reduce((sum: number, c: any) => sum + c.value, 0)
     : kr.current_value;
   const displayValue = isAverage && checkins && checkins.length > 0
     ? accumulatedValue! / checkins.length
+    : isMaximum && checkins && checkins.length > 0
+    ? Math.max(...checkins.map((c: any) => c.value))
     : accumulatedValue;
 
   async function handleDelete() {
@@ -77,7 +84,10 @@ export default function KRCard({ kr, milestones, checkins }: Props) {
 
   return (
     <>
-      <div className="flex items-center gap-4 p-4 rounded-lg bg-card border border-border hover:shadow-sm transition-shadow animate-fade-in">
+      <div className="flex items-center gap-4 p-4 rounded-lg bg-card hover:shadow-md transition-shadow animate-fade-in" style={{
+        border:"1px solid hsl(var(--border))",
+        borderLeft: status === "off-track" ? "4px solid #e5273c" : status === "at-risk" ? "4px solid #f8ae13" : status === "completed" ? "4px solid #22c55e" : "4px solid #2659a5"
+      }}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-xs font-mono text-muted-foreground">{kr.external_id}</span>
@@ -96,16 +106,31 @@ export default function KRCard({ kr, milestones, checkins }: Props) {
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">Baseado em eventos</span>
             )}
           </div>
-          <Link to={`/kr/${kr.id}`} className="font-medium text-sm hover:text-primary transition-colors line-clamp-1">
-            {kr.title}
-          </Link>
+          <div className="flex items-start gap-1.5">
+            <Link to={`/kr/${kr.id}`} className="font-medium text-sm hover:text-primary transition-colors line-clamp-1 flex-1">
+              {kr.title}
+            </Link>
+            {(kr as any).description && (
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <MessageSquare className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[320px]">
+                    <p className="text-xs font-semibold mb-1">Fala de C-Level</p>
+                    <p className="text-xs text-muted-foreground italic">{(kr as any).description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
           <ProgressBar progress={progress} status={status} expected={expected} className="mt-2" />
           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
             <span className="font-semibold text-foreground">{formatPercent(progress)}</span>
             {currentCycle && checkins && checkins.length > 0 && (
               <Sparkline kr={kr} cycle={currentCycle} checkins={checkins} />
             )}
-            <span>{isAverage ? "Média" : "Acumulado"}: {formatValue(displayValue, kr.unit)}</span>
+            <span>{isAverage ? "Média" : isMaximum ? "Máximo" : "Acumulado"}: {formatValue(displayValue, kr.unit)}</span>
             <span>Meta: {formatValue(kr.grade1_value, kr.unit)}</span>
             {nextEvent && (
               <span className="flex items-center gap-1">

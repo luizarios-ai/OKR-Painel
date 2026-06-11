@@ -273,10 +273,10 @@ export default function Admin() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold tracking-tight">Administração</h1>
 
-      <Tabs defaultValue={isOwner ? "cycles" : "users"}>
+      <Tabs defaultValue={isOwner ? "cycles" : "areas"}>
         <TabsList>
           {isOwner && <TabsTrigger value="cycles">Ciclos</TabsTrigger>}
-          {isOwner && <TabsTrigger value="areas">Áreas</TabsTrigger>}
+          <TabsTrigger value="areas">Áreas</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
         </TabsList>
 
@@ -297,8 +297,7 @@ export default function Admin() {
           </TabsContent>
         )}
 
-        {isOwner && (
-          <TabsContent value="areas" className="space-y-4 mt-4">
+        <TabsContent value="areas" className="space-y-4 mt-4">
             <Button onClick={() => { setForm({}); setDialog("area"); }}><Plus className="h-4 w-4 mr-2" />Nova Área</Button>
             {(areas || []).map((a) => (
               <Card key={a.id}>
@@ -311,15 +310,16 @@ export default function Admin() {
                     <Button variant="ghost" size="icon" onClick={() => openEditArea(a)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleArchiveArea(a)}>
-                      <Archive className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {isOwner && (
+                      <Button variant="ghost" size="icon" onClick={() => handleArchiveArea(a)}>
+                        <Archive className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             ))}
           </TabsContent>
-        )}
 
         <TabsContent value="users" className="space-y-4 mt-4">
           <div className="flex gap-2">

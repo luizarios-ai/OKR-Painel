@@ -67,7 +67,7 @@ export default function EditObjectiveDialog({ open, onOpenChange, objective }: P
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Owner *</Label>
+            <Label>Capitão *</Label>
             <Select value={ownerUserId} onValueChange={setOwnerUserId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>

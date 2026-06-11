@@ -15,8 +15,14 @@ import { Globe, Building2, ChevronDown, X } from "lucide-react";
 const ALL_STATUSES: OKRStatus[] = ["off-track", "at-risk", "on-track", "completed"];
 const CV_STATUS_KEY = "okrflow-cv-status-filter";
 
+function parseMacroOKR(title: string): { label: string; mainTitle: string } {
+  const match = title.match(/^(.*?)\s*\(MacroOKR:\s*(.+?)\)\s*$/);
+  if (match) return { mainTitle: match[1].trim(), label: match[2].trim() };
+  return { mainTitle: title, label: "" };
+}
+
 export default function CompanyView() {
-  const { currentCycle } = useApp();
+  const { currentCycle, setCycle, cycles } = useApp();
   const { data: objectives } = useObjectives(currentCycle?.id);
   const { data: keyResults } = useKeyResults(currentCycle?.id);
   const { data: areas } = useAreas();
@@ -48,8 +54,6 @@ export default function CompanyView() {
     return map;
   }, [allCheckins]);
 
-  const expected = currentCycle ? expectedProgress(currentCycle) : 0;
-
   const filteredObjectives = useMemo(() => {
     if (!objectives || !keyResults) return [];
     return objectives.filter((obj: any) => {
@@ -63,16 +67,18 @@ export default function CompanyView() {
     });
   }, [objectives, keyResults, areaFilter, statusFilter, currentCycle, milestonesMap, checkinsMap]);
 
-  // Group by area
   const grouped = useMemo(() => {
-    const map: Record<string, { area: string; objectives: any[] }> = {};
+    const map: Record<string, any[]> = {};
+    const order: string[] = [];
     filteredObjectives.forEach((obj: any) => {
-      const areaName = obj.areas?.name || "Sem Área";
-      if (!map[areaName]) map[areaName] = { area: areaName, objectives: [] };
-      map[areaName].objectives.push(obj);
+      const areaName = (areas || []).find((a) => a.id === obj.area_id)?.name || "Sem área";
+      if (!map[areaName]) { map[areaName] = []; order.push(areaName); }
+      map[areaName].push(obj);
     });
-    return Object.values(map);
-  }, [filteredObjectives]);
+    return order.sort().map((area) => ({ area, objectives: map[area] }));
+  }, [filteredObjectives, areas]);
+
+  const expected = currentCycle ? expectedProgress(currentCycle) : 0;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -91,9 +97,15 @@ export default function CompanyView() {
               </Badge>
             )}
           </h1>
-          <p className="text-muted-foreground text-sm">Ciclo {currentCycle?.name} · Somente leitura</p>
+          <div className="flex items-center gap-2 mt-1">
+            <Select value={currentCycle?.id || ""} onValueChange={(v) => setCycle(cycles.find((c) => c.id === v) || null)}>
+              <SelectTrigger className="w-36 text-sm"><SelectValue placeholder="Ciclo" /></SelectTrigger>
+              <SelectContent>{cycles.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+            <p className="text-muted-foreground text-sm">Ciclo {currentCycle?.name} · Somente leitura</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Select value={areaFilter} onValueChange={setAreaFilter}>
             <SelectTrigger className="w-40"><SelectValue placeholder="Área" /></SelectTrigger>
             <SelectContent>
@@ -101,14 +113,11 @@ export default function CompanyView() {
               {(areas || []).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          {/* Status Filter */}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="gap-1.5">
                 Status
-                {statusFilter.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{statusFilter.length}</Badge>
-                )}
+                {statusFilter.length > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{statusFilter.length}</Badge>}
                 <ChevronDown className="h-3.5 w-3.5 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -116,14 +125,11 @@ export default function CompanyView() {
               <div className="space-y-1">
                 {ALL_STATUSES.map((s) => (
                   <label key={s} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer text-sm">
-                    <Checkbox
-                      checked={statusFilter.includes(s)}
-                      onCheckedChange={() => {
-                        const next = statusFilter.includes(s) ? statusFilter.filter((v) => v !== s) : [...statusFilter, s];
-                        setStatusFilter(next);
-                        localStorage.setItem(CV_STATUS_KEY, JSON.stringify(next));
-                      }}
-                    />
+                    <Checkbox checked={statusFilter.includes(s)} onCheckedChange={() => {
+                      const next = statusFilter.includes(s) ? statusFilter.filter((v) => v !== s) : [...statusFilter, s];
+                      setStatusFilter(next);
+                      localStorage.setItem(CV_STATUS_KEY, JSON.stringify(next));
+                    }} />
                     {statusLabel(s)}
                   </label>
                 ))}
@@ -135,6 +141,7 @@ export default function CompanyView() {
               )}
             </PopoverContent>
           </Popover>
+
         </div>
       </div>
 
@@ -153,20 +160,14 @@ export default function CompanyView() {
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div>
-                        <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
-                          <span className="font-mono">{obj.external_id}</span>
-                          <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{obj.areas?.name}</span>
-                        </div>
-                        <h3 className="font-semibold">{obj.title}</h3>
+                        {(() => { const { mainTitle, label } = parseMacroOKR(obj.title); return (<>
+                          {label && <span className="text-[10px] font-semibold uppercase tracking-wide text-primary/60 block mb-0.5">MacroOKR: {label}</span>}
+                          <h3 className="font-semibold">{mainTitle}</h3>
+                        </>); })()}
                       </div>
                       <span className="text-xl font-bold shrink-0">{formatPercent(objProgress)}</span>
                     </div>
-                    <ProgressBar
-                      progress={objProgress}
-                      status={objProgress >= expected * 0.7 ? "on-track" : objProgress >= expected * 0.4 ? "at-risk" : "off-track"}
-                      expected={expected}
-                      className="mb-4"
-                    />
+                    <ProgressBar progress={objProgress} status={objProgress >= expected * 0.7 ? "on-track" : objProgress >= expected * 0.4 ? "at-risk" : "off-track"} expected={expected} className="mb-4" />
                     <div className="space-y-2">
                       {objKRs.sort((a, b) => {
                         if (!currentCycle) return 0;
@@ -177,7 +178,7 @@ export default function CompanyView() {
                         return (
                           <div key={kr.id} className="flex items-center gap-3 p-2 rounded-md">
                             <StatusBadge status={s} />
-                            <span className="flex-1 text-sm truncate">{kr.title}</span>
+                            <span className="flex-1 text-sm">{kr.title}</span>
                             <span className="text-sm font-semibold">{formatPercent(p)}</span>
                           </div>
                         );
@@ -190,6 +191,7 @@ export default function CompanyView() {
           </div>
         </div>
       ))}
+
     </div>
   );
 }

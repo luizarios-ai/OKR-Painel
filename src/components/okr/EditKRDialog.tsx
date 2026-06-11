@@ -65,7 +65,7 @@ export default function EditKRDialog({ open, onOpenChange, kr }: Props) {
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Owner *</Label>
+            <Label>Capitão *</Label>
             <Select value={ownerUserId} onValueChange={setOwnerUserId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -82,8 +82,7 @@ export default function EditKRDialog({ open, onOpenChange, kr }: Props) {
                   <SelectItem value="number">Número</SelectItem>
                   <SelectItem value="percent">Percentual</SelectItem>
                   <SelectItem value="currency">Moeda</SelectItem>
-                  <SelectItem value="boolean">Sim/Não</SelectItem>
-                </SelectContent>
+                                  </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
@@ -91,8 +90,8 @@ export default function EditKRDialog({ open, onOpenChange, kr }: Props) {
               <Select value={direction} onValueChange={setDirection}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="increase">Aumentar</SelectItem>
-                  <SelectItem value="decrease">Diminuir</SelectItem>
+                  <SelectItem value="increase">Quanto maior melhor ↑</SelectItem>
+                  <SelectItem value="decrease">Quanto menor melhor ↓</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -104,12 +103,16 @@ export default function EditKRDialog({ open, onOpenChange, kr }: Props) {
               <SelectContent>
                 <SelectItem value="accumulated">Acumulado</SelectItem>
                 <SelectItem value="average">Média</SelectItem>
+                  <SelectItem value="maximum">Máximo</SelectItem>
+                  <SelectItem value="maximum">Máximo</SelectItem>
                 <SelectItem value="milestone">Marco</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
               {measurementType === "accumulated" && "Soma os registros mensais (padrão)"}
               {measurementType === "average" && "A meta é atingida quando a média dos registros chegar ao Grade 1"}
+              {measurementType === "maximum" && "O pico máximo registrado é o resultado final"}
+              {measurementType === "maximum" && "O pico máximo registrado é o resultado final"}
               {measurementType === "milestone" && "Acontece ou não em uma data específica"}
             </p>
           </div>

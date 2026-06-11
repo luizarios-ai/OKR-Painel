@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { LogIn, AlertCircle } from "lucide-react";
@@ -10,11 +10,14 @@ export default function Login() {
 
   async function handleGoogleLogin() {
     setSigningIn(true);
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-      extraParams: {
-        hd: "*",
-        prompt: "select_account",
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: {
+          hd: "*",
+          prompt: "select_account",
+        },
       },
     });
     if (error) {
@@ -30,7 +33,7 @@ export default function Login() {
       <div className="w-full max-w-sm space-y-8 text-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            <span className="text-primary">OKR</span> Pulse
+            <span className="text-primary">Painel de OKRs</span> Gogroup
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Gestão de OKRs — Gogroup

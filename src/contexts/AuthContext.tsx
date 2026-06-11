@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Busca usuário existente
     const { data, error: dbError } = await supabase
       .from("app_users")
       .select("*")
@@ -62,18 +63,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (dbError) {
       setError("Erro ao verificar cadastro. Tente novamente.");
       setAppUser(null);
-    } else if (!data) {
-      setError("Seu usuário não está cadastrado no sistema. Procure um administrador.");
+      setLoading(false);
+      return;
+    }
+
+    if (data) {
+      setError(null);
+      setAppUser(data);
+      setLoading(false);
+      return;
+    }
+
+    // Usuário não existe — cria automaticamente como viewer
+    const name = user.user_metadata?.full_name || email.split("@")[0];
+    const { data: newUser, error: insertError } = await supabase
+      .from("app_users")
+      .insert({ name, email, role: "viewer" })
+      .select()
+      .single();
+
+    if (insertError) {
+      setError("Erro ao criar usuário. Tente novamente.");
       setAppUser(null);
     } else {
       setError(null);
-      setAppUser(data);
+      setAppUser(newUser);
     }
     setLoading(false);
   }
 
   useEffect(() => {
-    // Set up listener BEFORE getSession
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user ?? null;
       setAuthUser(user);

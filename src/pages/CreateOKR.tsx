@@ -220,7 +220,7 @@ export default function CreateOKR() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Owner *</Label>
+              <Label>Capitão *</Label>
               <Select value={ownerUserId} onValueChange={setOwnerUserId}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
@@ -235,10 +235,6 @@ export default function CreateOKR() {
             <div className="space-y-2">
               <Label>Descrição</Label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Opcional" />
-            </div>
-            <div className="space-y-2">
-              <Label>Peso</Label>
-              <Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} min="0" step="0.1" />
             </div>
           </CardContent>
         </Card>
@@ -261,7 +257,7 @@ export default function CreateOKR() {
                   <Input value={kr.title} onChange={(e) => updateKR(idx, { title: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Owner *</Label>
+                  <Label>Capitão *</Label>
                   <Select value={kr.owner_user_id} onValueChange={(v) => updateKR(idx, { owner_user_id: v })}>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
@@ -278,8 +274,7 @@ export default function CreateOKR() {
                         <SelectItem value="number">Número</SelectItem>
                         <SelectItem value="percent">Percentual</SelectItem>
                         <SelectItem value="currency">Moeda</SelectItem>
-                        <SelectItem value="boolean">Sim/Não</SelectItem>
-                      </SelectContent>
+                                              </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
@@ -287,8 +282,8 @@ export default function CreateOKR() {
                     <Select value={kr.direction} onValueChange={(v) => updateKR(idx, { direction: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="increase">Aumentar</SelectItem>
-                        <SelectItem value="decrease">Diminuir</SelectItem>
+                        <SelectItem value="increase">Quanto maior melhor ↑</SelectItem>
+                        <SelectItem value="decrease">Quanto menor melhor ↓</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -300,12 +295,16 @@ export default function CreateOKR() {
                     <SelectContent>
                       <SelectItem value="accumulated">Acumulado</SelectItem>
                       <SelectItem value="average">Média</SelectItem>
+                      <SelectItem value="maximum">Máximo</SelectItem>
+                      <SelectItem value="maximum">Máximo</SelectItem>
                       <SelectItem value="milestone">Marco</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     {kr.measurement_type === "accumulated" && "Soma os registros mensais (padrão)"}
                     {kr.measurement_type === "average" && "A meta é atingida quando a média dos registros chegar ao Grade 1"}
+                    {kr.measurement_type === "maximum" && "O pico máximo registrado é o resultado final"}
+                    {kr.measurement_type === "maximum" && "O pico máximo registrado é o resultado final"}
                     {kr.measurement_type === "milestone" && "Acontece ou não em uma data específica"}
                   </p>
                 </div>
@@ -372,8 +371,7 @@ export default function CreateOKR() {
                         <Input value={m.title} onChange={(e) => updateMilestone(realIdx, mIdx, { title: e.target.value })} />
                       </div>
                       <div className="space-y-1 w-20">
-                        <Label className="text-xs">Peso</Label>
-                        <Input type="number" step="0.1" min="0" max="1" value={m.weight} onChange={(e) => updateMilestone(realIdx, mIdx, { weight: e.target.value })} />
+
                       </div>
                       <div className="space-y-1 w-24">
                         <Label className="text-xs">Meta</Label>

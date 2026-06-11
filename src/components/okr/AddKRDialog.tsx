@@ -12,58 +12,49 @@ import { useApp } from "@/contexts/AppContext";
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  milestone: any | null;
-  krId?: string;
+  objectiveId: string;
+  cycleId: string;
+  areaId: string | null;
 }
 
-export default function EditMilestoneDialog({ open, onOpenChange, milestone, krId }: Props) {
+export default function AddKRDialog({ open, onOpenChange, objectiveId, cycleId, areaId }: Props) {
+  const { users, currentUser } = useApp();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { users, currentUser } = useApp();
 
-  const [title, setTitle] = useState(milestone?.title || "");
-  const [grade0, setGrade0] = useState(String(milestone?.grade0_value ?? ""));
-  const [targetValue, setTargetValue] = useState(String(milestone?.target_value || ""));
-  const [unit, setUnit] = useState(milestone?.unit || "number");
-  const [direction, setDirection] = useState(milestone?.direction || "increase");
-  const [ownerId, setOwnerId] = useState(milestone?.owner_user_id || currentUser?.id || "");
-  const [dueDate, setDueDate] = useState(milestone?.due_date || "");
+  const [title, setTitle] = useState("");
+  const [grade0, setGrade0] = useState("");
+  const [grade1, setGrade1] = useState("");
+  const [unit, setUnit] = useState("number");
+  const [direction, setDirection] = useState("increase");
+  const [ownerId, setOwnerId] = useState(currentUser?.id || "");
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
-    if (!title.trim()) return;
+    if (!title.trim() || !grade1) return;
     setSaving(true);
     try {
-      const payload = {
+      const { error } = await supabase.from("key_results").insert({
+        objective_id: objectiveId,
+        cycle_id: cycleId,
+        area_id: areaId,
+        owner_user_id: ownerId || currentUser?.id,
         title: title.trim(),
-        grade0_value: parseFloat(grade0) || 0,
-        target_value: parseFloat(targetValue) || 1,
         unit,
         direction,
-        owner_user_id: ownerId || null,
-        due_date: dueDate || null,
-      };
-
-      if (!milestone) {
-        const { error } = await supabase.from("milestones").insert({
-          ...payload,
-          key_result_id: krId!,
-          current_value: 0,
-          weight: 0.5,
-        });
-        if (error) throw error;
-        toast({ title: "Milestone criado!" });
-      } else {
-        const { error } = await supabase.from("milestones").update(payload).eq("id", milestone.id);
-        if (error) throw error;
-        toast({ title: "Milestone atualizado!" });
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["milestones"] });
-      queryClient.invalidateQueries({ queryKey: ["milestones-detail"] });
+        grade0_value: parseFloat(grade0) || 0,
+        grade1_value: parseFloat(grade1) || 1,
+        has_milestones: false,
+        measurement_type: "accumulated",
+        expected_progress_mode: "linear",
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["key_results"] });
+      toast({ title: "KR criado!" });
       onOpenChange(false);
+      setTitle(""); setGrade0(""); setGrade1(""); setUnit("number"); setDirection("increase");
     } catch (err: any) {
-      toast({ title: "Erro ao salvar", description: err?.message, variant: "destructive" });
+      toast({ title: "Erro ao criar KR", description: err?.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -72,24 +63,22 @@ export default function EditMilestoneDialog({ open, onOpenChange, milestone, krI
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>{milestone ? "Editar Milestone" : "Novo Milestone"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Novo Key Result</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Título *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nome do milestone" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Descreva o resultado esperado" />
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Grade 0 (mínimo)</Label>
               <Input type="number" value={grade0} onChange={(e) => setGrade0(e.target.value)} placeholder="0" />
             </div>
             <div className="space-y-2">
-              <Label>Grade 1 (meta)</Label>
-              <Input type="number" value={targetValue} onChange={(e) => setTargetValue(e.target.value)} placeholder="1" />
+              <Label>Grade 1 (meta) *</Label>
+              <Input type="number" value={grade1} onChange={(e) => setGrade1(e.target.value)} placeholder="100" />
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Unidade</Label>
@@ -113,7 +102,6 @@ export default function EditMilestoneDialog({ open, onOpenChange, milestone, krI
               </Select>
             </div>
           </div>
-
           <div className="space-y-2">
             <Label>Capitão</Label>
             <Select value={ownerId} onValueChange={setOwnerId}>
@@ -123,16 +111,10 @@ export default function EditMilestoneDialog({ open, onOpenChange, milestone, krI
               </SelectContent>
             </Select>
           </div>
-
-          <div className="space-y-2">
-            <Label>Prazo</Label>
-            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-          </div>
-
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!title.trim() || saving}>
-              {saving ? "Salvando..." : "Salvar"}
+            <Button onClick={handleSave} disabled={!title.trim() || !grade1 || saving}>
+              {saving ? "Salvando..." : "Criar KR"}
             </Button>
           </div>
         </div>
