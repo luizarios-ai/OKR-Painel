@@ -53,7 +53,7 @@ export default function KRDetail() {
   const { data: milestones } = useQuery({
     queryKey: ["milestones-detail", id],
     queryFn: async () => {
-      const { data } = await supabase.from("milestones").select("*").eq("key_result_id", id!).eq("archived", false);
+      const { data } = await supabase.from("milestones").select("*, app_users(name)").eq("key_result_id", id!).eq("archived", false);
       return data || [];
     },
     enabled: !!id,
@@ -222,12 +222,20 @@ export default function KRDetail() {
                     </div>
                   </div>
                   <ProgressBar progress={mp} status={ms} />
-                  {m.due_date && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {format(new Date(m.due_date), "dd MMM yyyy", { locale: ptBR })}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                    {m.due_date && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {format(new Date(m.due_date), "dd MMM yyyy", { locale: ptBR })}
+                      </span>
+                    )}
+                    {(m as any).app_users?.name && (
+                      <span className="flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        {(m as any).app_users.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}

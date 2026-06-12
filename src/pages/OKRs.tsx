@@ -8,10 +8,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useObjectives, useKeyResults, useMilestones, useAreas, useAllCheckins } from "@/hooks/useOKRData";
 import { progressKR, progressObjective, getKRStatus, getObjectiveStatus, expectedProgress, formatPercent, formatValue, statusOrder, statusLabel, type OKRStatus } from "@/lib/okr-utils";
 import KRCard from "@/components/okr/KRCard";
-import AIAreaSummary from "@/components/okr/AIAreaSummary";
 import AddKRDialog from "@/components/okr/AddKRDialog";
 import CheckinDialog from "@/components/okr/CheckinDialog";
-import AIAreaSummary from "@/components/okr/AIAreaSummary";
 import AddKRDialog from "@/components/okr/AddKRDialog";
 import CheckinDialog from "@/components/okr/CheckinDialog";
 import AddKRDialog from "@/components/okr/AddKRDialog";
@@ -511,17 +509,6 @@ export default function OKRs() {
             const areaScore = areaId && areaPerformance[areaId] !== undefined ? areaPerformance[areaId] : null;
             return (
               <div key={areaId || "no-area"} className="rounded-lg border border-border overflow-hidden">
-                {/* AI Summary in table view */}
-                {currentCycle && (
-                  <AIAreaSummary
-                    areaName={areaName}
-                    cycleId={currentCycle.id}
-                    objectives={areaObjs}
-                    milestonesMap={milestonesMap}
-                    checkinsMap={checkinsMap}
-                    progressKR={progressKR}
-                  />
-                )}
                 {/* AI Summary in table view */}
                 {currentCycle && (
                   <AIAreaSummary

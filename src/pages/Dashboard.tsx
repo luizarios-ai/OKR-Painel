@@ -20,6 +20,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList,
 } from "recharts";
 import DashboardFilters, { loadFilters, type FilterState } from "@/components/dashboard/DashboardFilters";
+import AIAreaSummary from "@/components/okr/AIAreaSummary";
 
 const ROW_HEIGHT = 49;
 const MAX_VISIBLE = 7;
@@ -338,6 +339,34 @@ export default function Dashboard() {
           </ChartContainer>
         </CardContent>
       </Card>
+
+      {/* Relatório Executivo por Área */}
+      {currentCycle && (areas || []).filter(a => filteredAreaIds.length === 0 || filteredAreaIds.includes(a.id)).map((area) => {
+        const areaObjs = (objectives || []).filter((o: any) => !o.archived && o.area_id === area.id);
+        if (areaObjs.length === 0) return null;
+        const areaCheckinsMap: Record<string, any[]> = {};
+        const areaKrIds = (keyResults || []).filter((kr: any) => areaObjs.some((o: any) => o.id === kr.objective_id)).map((kr: any) => kr.id);
+        (allCheckins || []).forEach((c: any) => {
+          if (!areaCheckinsMap[c.key_result_id]) areaCheckinsMap[c.key_result_id] = [];
+          areaCheckinsMap[c.key_result_id].push(c);
+        });
+        const areaMilestonesMap: Record<string, any[]> = {};
+        (milestones || []).forEach((m: any) => {
+          if (!areaMilestonesMap[m.key_result_id]) areaMilestonesMap[m.key_result_id] = [];
+          areaMilestonesMap[m.key_result_id].push(m);
+        });
+        return (
+          <AIAreaSummary
+            key={area.id}
+            areaName={area.name}
+            cycleId={currentCycle.id}
+            objectives={areaObjs}
+            milestonesMap={areaMilestonesMap}
+            checkinsMap={areaCheckinsMap}
+            progressKR={progressKR}
+          />
+        );
+      })}
 
       {/* Farol de Preenchimento de Check-ins */}
       <CheckinFillRateTable
