@@ -73,19 +73,21 @@ export function useCheckins(krId: string) {
   });
 }
 
-export function useAllCheckins(cycleId: string | undefined, krIds: string[]) {
+export function useAllCheckins(cycleId: string | undefined, _krIds?: string[]) {
   return useQuery({
     queryKey: ["all-checkins", cycleId],
-    enabled: !!cycleId && krIds.length > 0,
+    enabled: !!cycleId,
     gcTime: 0,
     staleTime: 0,
+    refetchOnMount: true,
     queryFn: async () => {
+      // Query by cycle_id via join — no closure over krIds, always returns all checkins for the cycle
       const { data } = await supabase
         .from("checkins")
-        .select("id, key_result_id, value, comment, created_at, reference_month, milestone_id")
-        .in("key_result_id", krIds)
+        .select("id, key_result_id, value, comment, created_at, reference_month, milestone_id, key_results!inner(cycle_id)")
+        .eq("key_results.cycle_id", cycleId)
         .order("created_at", { ascending: true });
-      return data || [];
+      return (data || []).map(({ key_results: _kr, ...c }: any) => c);
     },
   });
 }
