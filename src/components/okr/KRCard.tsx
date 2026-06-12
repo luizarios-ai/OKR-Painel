@@ -127,6 +127,7 @@ export default function KRCard({ kr, milestones, checkins }: Props) {
           <ProgressBar progress={progress} status={status} expected={expected} className="mt-2" />
           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
             <span className="font-semibold text-foreground">{formatPercent(progress)}</span>
+            
             {currentCycle && checkins && checkins.length > 0 && (
               <Sparkline kr={kr} cycle={currentCycle} checkins={checkins} />
             )}

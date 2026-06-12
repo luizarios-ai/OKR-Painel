@@ -85,14 +85,24 @@ export function useAllCheckins(cycleId: string | undefined, krIds: string[] = []
     staleTime: 0,
     refetchOnMount: "always" as const,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("checkins")
-        .select("id, key_result_id, value, comment, created_at, reference_month, milestone_id")
-        .in("key_result_id", krIds)
-        .order("created_at", { ascending: true })
-        .limit(10000);
-      if (error) throw error;
-      return data || [];
+      // Paginate to bypass Supabase server-side max_rows cap (default 1000)
+      const PAGE_SIZE = 1000;
+      let allData: any[] = [];
+      let offset = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("checkins")
+          .select("id, key_result_id, value, comment, created_at, reference_month, milestone_id")
+          .in("key_result_id", krIds)
+          .order("created_at", { ascending: true })
+          .range(offset, offset + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allData = [...allData, ...data];
+        if (data.length < PAGE_SIZE) break;
+        offset += PAGE_SIZE;
+      }
+      return allData;
     },
   });
 }
