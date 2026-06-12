@@ -284,6 +284,10 @@ export default function OKRs() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
+      {/* DEBUG TEMP - remover depois */}
+      <div style={{fontSize:11,color:"#888",background:"#f9f9f9",padding:"4px 8px",borderRadius:4,fontFamily:"monospace"}}>
+        🔍 allCheckins: {allCheckins?.length ?? "undefined"} | krIds: {allKrIds.length} | cycle: {currentCycle?.name}
+      </div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">

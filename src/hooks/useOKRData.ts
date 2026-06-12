@@ -89,7 +89,8 @@ export function useAllCheckins(cycleId: string | undefined, krIds: string[] = []
         .from("checkins")
         .select("id, key_result_id, value, comment, created_at, reference_month, milestone_id")
         .in("key_result_id", krIds)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true })
+        .limit(10000);
       if (error) throw error;
       return data || [];
     },
