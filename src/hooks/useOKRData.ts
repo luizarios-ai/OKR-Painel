@@ -31,6 +31,8 @@ export function useKeyResults(cycleId: string | undefined) {
   return useQuery({
     queryKey: ["key_results", cycleId],
     enabled: !!cycleId,
+    staleTime: 0,
+    gcTime: 0,
     queryFn: async () => {
       const { data } = await supabase
         .from("key_results")
@@ -73,21 +75,23 @@ export function useCheckins(krId: string) {
   });
 }
 
-export function useAllCheckins(cycleId: string | undefined, _krIds?: string[]) {
+export function useAllCheckins(cycleId: string | undefined, krIds: string[] = []) {
+  // Include sorted krIds in queryKey so changing IDs always triggers a fresh fetch
+  const krIdsKey = [...krIds].sort().join(",");
   return useQuery({
-    queryKey: ["all-checkins", cycleId],
-    enabled: !!cycleId,
+    queryKey: ["all-checkins", cycleId, krIdsKey],
+    enabled: !!cycleId && krIds.length > 0,
     gcTime: 0,
     staleTime: 0,
-    refetchOnMount: true,
+    refetchOnMount: "always" as const,
     queryFn: async () => {
-      // Query by cycle_id via join — no closure over krIds, always returns all checkins for the cycle
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("checkins")
-        .select("id, key_result_id, value, comment, created_at, reference_month, milestone_id, key_results!inner(cycle_id)")
-        .eq("key_results.cycle_id", cycleId)
+        .select("id, key_result_id, value, comment, created_at, reference_month, milestone_id")
+        .in("key_result_id", krIds)
         .order("created_at", { ascending: true });
-      return (data || []).map(({ key_results: _kr, ...c }: any) => c);
+      if (error) throw error;
+      return data || [];
     },
   });
 }
