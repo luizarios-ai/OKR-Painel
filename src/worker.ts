@@ -29,6 +29,23 @@ function buildPrompt(areaName: string, objectives: any[]): string {
   return lines.join("\n");
 }
 
+function buildDashboardPrompt(cycleName: string, areas: any[]): string {
+  const lines: string[] = [];
+  lines.push(`Você é analista sênior de OKRs. Analise a performance do ciclo "${cycleName}" e gere um resumo executivo em JSON puro (sem markdown).`);
+  lines.push(`Formato obrigatório (retorne SOMENTE este JSON):`);
+  lines.push(`{"diagnostico":"Máx 2 frases sobre o estado geral. Use **negrito** para métricas.","positivos":["área/destaque com % real"],"atencao":["área/problema com % real"],"acao":["ação corretiva específica"]}`);
+  lines.push(`
+Performance por área no ciclo (score médio dos OKRs):`);
+  const sorted = [...areas].sort((a, b) => b.progress - a.progress);
+  for (const a of sorted) {
+    const fill = a.fillRate != null ? ` | Atualização: ${a.fillRate}% dos KRs com check-in` : "";
+    lines.push(`  - ${a.name}: ${a.progress}%${fill}`);
+  }
+  lines.push(`
+Regras: cite sempre nomes de áreas e percentuais reais. Máx 3 itens por lista. Foco em áreas com baixa performance ou baixa taxa de atualização.`);
+  return lines.join("\n");
+}
+
 export default {
   async fetch(request: Request, env: any): Promise<Response> {
     const url = new URL(request.url);
@@ -55,11 +72,20 @@ export default {
       let body: any;
       try { body = await request.json(); } catch { return json({ error: "Body inválido" }, 400); }
 
-      const { areaName, cycleId, objectives } = body;
-      if (!areaName || !cycleId || !objectives) return json({ error: "Dados incompletos" }, 400);
+      const { areaName, cycleId, objectives, dashboardMode, cycleName, areas } = body;
 
-      const cacheKey = `${cycleId}::${areaName}`;
-      const prompt = buildPrompt(areaName, objectives);
+      let cacheKey: string;
+      let prompt: string;
+
+      if (dashboardMode) {
+        if (!cycleId || !areas) return json({ error: "Dados incompletos" }, 400);
+        cacheKey = `${cycleId}::dashboard-v1`;
+        prompt = buildDashboardPrompt(cycleName || cycleId, areas);
+      } else {
+        if (!areaName || !cycleId || !objectives) return json({ error: "Dados incompletos" }, 400);
+        cacheKey = `${cycleId}::${areaName}`;
+        prompt = buildPrompt(areaName, objectives);
+      }
       const updatedAt = new Date().toISOString();
 
       let rawText = "";

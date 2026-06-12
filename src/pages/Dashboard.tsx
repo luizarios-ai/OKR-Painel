@@ -20,7 +20,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList,
 } from "recharts";
 import DashboardFilters, { loadFilters, type FilterState } from "@/components/dashboard/DashboardFilters";
-import AIAreaSummary from "@/components/okr/AIAreaSummary";
+import DashboardSummary from "@/components/okr/DashboardSummary";
 
 const ROW_HEIGHT = 49;
 const MAX_VISIBLE = 7;
@@ -313,14 +313,11 @@ export default function Dashboard() {
       </div>
 
       {/* Resumo Executivo */}
-      {currentCycle && (
-        <AIAreaSummary
-          areaName="Empresa inteira"
+      {currentCycle && areaProgressData.length > 0 && (
+        <DashboardSummary
           cycleId={currentCycle.id}
-          objectives={(objectives || []).filter((o: any) => !o.archived)}
-          milestonesMap={milestonesMap}
-          checkinsMap={checkinsMap}
-          progressKR={progressKR}
+          cycleName={currentCycle.name}
+          areas={areaProgressData}
         />
       )}
 
