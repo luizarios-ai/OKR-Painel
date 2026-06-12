@@ -341,7 +341,7 @@ export default function Dashboard() {
       </Card>
 
       {/* Relatório Executivo por Área */}
-      {currentCycle && (areas || []).filter(a => filteredAreaIds.length === 0 || filteredAreaIds.includes(a.id)).map((area) => {
+      {currentCycle && (areas || []).filter(a => !filteredAreaIds || filteredAreaIds.size === 0 || filteredAreaIds.has(a.id)).map((area) => {
         const areaObjs = (objectives || []).filter((o: any) => !o.archived && o.area_id === area.id);
         if (areaObjs.length === 0) return null;
         const areaCheckinsMap: Record<string, any[]> = {};
