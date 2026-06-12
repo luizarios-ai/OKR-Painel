@@ -312,6 +312,18 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Resumo Executivo */}
+      {currentCycle && (
+        <AIAreaSummary
+          areaName="Empresa inteira"
+          cycleId={currentCycle.id}
+          objectives={(objectives || []).filter((o: any) => !o.archived)}
+          milestonesMap={milestonesMap}
+          checkinsMap={checkinsMap}
+          progressKR={progressKR}
+        />
+      )}
+
       {/* Column Chart - Performance por Área */}
       <Card>
         <CardHeader>
@@ -339,34 +351,6 @@ export default function Dashboard() {
           </ChartContainer>
         </CardContent>
       </Card>
-
-      {/* Relatório Executivo por Área */}
-      {currentCycle && (areas || []).filter(a => !filteredAreaIds || filteredAreaIds.size === 0 || filteredAreaIds.has(a.id)).map((area) => {
-        const areaObjs = (objectives || []).filter((o: any) => !o.archived && o.area_id === area.id);
-        if (areaObjs.length === 0) return null;
-        const areaCheckinsMap: Record<string, any[]> = {};
-        const areaKrIds = (keyResults || []).filter((kr: any) => areaObjs.some((o: any) => o.id === kr.objective_id)).map((kr: any) => kr.id);
-        (allCheckins || []).forEach((c: any) => {
-          if (!areaCheckinsMap[c.key_result_id]) areaCheckinsMap[c.key_result_id] = [];
-          areaCheckinsMap[c.key_result_id].push(c);
-        });
-        const areaMilestonesMap: Record<string, any[]> = {};
-        (milestones || []).forEach((m: any) => {
-          if (!areaMilestonesMap[m.key_result_id]) areaMilestonesMap[m.key_result_id] = [];
-          areaMilestonesMap[m.key_result_id].push(m);
-        });
-        return (
-          <AIAreaSummary
-            key={area.id}
-            areaName={area.name}
-            cycleId={currentCycle.id}
-            objectives={areaObjs}
-            milestonesMap={areaMilestonesMap}
-            checkinsMap={areaCheckinsMap}
-            progressKR={progressKR}
-          />
-        );
-      })}
 
       {/* Farol de Preenchimento de Check-ins */}
       <CheckinFillRateTable
