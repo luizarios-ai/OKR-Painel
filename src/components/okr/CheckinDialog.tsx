@@ -63,31 +63,11 @@ export default function CheckinDialog({ open, onOpenChange, kr, milestones }: Pr
       reference_month: referenceMonth,
     });
 
-    // current_value is recalculated automatically by DB trigger
-
-    // Update all-checkins cache directly with the new checkin
-    const newCheckin = {
-      id: crypto.randomUUID(),
-      key_result_id: kr.id,
-      value: numValue,
-      comment: comment || null,
-      created_at: new Date().toISOString(),
-      reference_month: referenceMonth,
-      milestone_id: milestoneId || null,
-    };
-    qc.setQueriesData({ queryKey: ["all-checkins"] }, (old: any) => {
-      if (!old) return [newCheckin];
-      if (Array.isArray(old)) return [...old, newCheckin];
-      return old;
-    });
-    qc.setQueriesData({ queryKey: ["checkins", kr.id] }, (old: any) => {
-      if (!old) return [newCheckin];
-      if (Array.isArray(old)) return [...old, newCheckin];
-      return old;
-    });
-    // Also invalidate key_results so current_value refreshes from DB
-    qc.invalidateQueries({ queryKey: ["key_results"] });
-    qc.invalidateQueries({ queryKey: ["milestones"] });
+    // Invalidate all relevant caches so every view refetches fresh data from DB
+    await qc.invalidateQueries({ queryKey: ["all-checkins"] });
+    await qc.invalidateQueries({ queryKey: ["checkins", kr.id] });
+    await qc.invalidateQueries({ queryKey: ["key_results"] });
+    await qc.invalidateQueries({ queryKey: ["milestones"] });
     toast.success("Atualizado!");
     setValue("");
     setComment("");
